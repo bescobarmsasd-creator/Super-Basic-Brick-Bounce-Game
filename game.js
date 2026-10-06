@@ -59,14 +59,22 @@ const GUN_COOLDOWN = 12;
 const bullets = [];
 let gunCooldown = 0;
 const balls = [ball];
+let ballPopulation = 1;
 const powerUps = [];
 const POWERUP_SPEED = 2;
+const MULTIBALL_POPULATION = 5_000_000;
+const BALLS_PER_PROXY = MULTIBALL_POPULATION / 200;
 const MULTIBALL_EXTRA = 199;
 const MAX_BALLS = 200;
 const aircraft = [];
-const JUMPSCARE_CHANCE = 0.16;
-const JUMPSCARE_DURATION = 48;
+const explosions = [];
+const NUKE_EXPLOSION_DURATION = 36;
+const JUMPSCARE_CHANCE = 0.6;
+const JUMPSCARE_DURATION = 60;
+const JUMPSCARE_FACE_COLORS = ["#26130f", "#17222d", "#30221a"];
+const JUMPSCARE_EYE_COLORS = ["#ff3b28", "#bcff3b", "#5de5ff"];
 let jumpscareTimer = 0;
+let jumpscareVariant = 0;
 
 
 // ------------------------------------------------------------
@@ -108,6 +116,7 @@ function update() {
   movePaddle();
   fireGun();
   moveBullets();
+  updateExplosions();
   updatePowerUps();
   updateAircraft();
 
@@ -119,6 +128,7 @@ function update() {
     bounceOffBricks(currentBall);  // collisions.js
     if (currentBall.y > HEIGHT) {
       balls.splice(index, 1);
+        ballPopulation = Math.max(balls.length, ballPopulation - BALLS_PER_PROXY);
     }
   }
 
@@ -127,9 +137,11 @@ function update() {
   if (balls.length === 0) {
     if (Math.random() < JUMPSCARE_CHANCE) {
       jumpscareTimer = JUMPSCARE_DURATION;
+      jumpscareVariant = Math.floor(Math.random() * JUMPSCARE_FACE_COLORS.length);
     }
     resetBall();
     balls.push(ball);
+    ballPopulation = 1;
   }
 
   if (bricks.length === 0) {
@@ -149,6 +161,7 @@ function advanceLevel() {
   powerUps.length = 0;
   aircraft.length = 0;
   balls.length = 0;
+  ballPopulation = 1;
   resetBall();
   balls.push(ball);
 }
@@ -206,6 +219,7 @@ function updatePowerUps() {
     if (boxesTouch(powerUp, paddle)) {
       if (powerUp.type === "nuke") {
         bricks.length = 0;
+        explosions.push({ x: WIDTH / 2, y: HEIGHT / 2, frame: 0 });
       } else if (powerUp.type === "airstrike") {
         triggerAirStrike();
       } else {
@@ -214,6 +228,15 @@ function updatePowerUps() {
       powerUps.splice(index, 1);
     } else if (powerUp.y > HEIGHT) {
       powerUps.splice(index, 1);
+    }
+  }
+}
+
+function updateExplosions() {
+  for (let index = explosions.length - 1; index >= 0; index--) {
+    explosions[index].frame++;
+    if (explosions[index].frame >= NUKE_EXPLOSION_DURATION) {
+      explosions.splice(index, 1);
     }
   }
 }
@@ -237,6 +260,7 @@ function addMultiball() {
       vy: Math.sin(angle) * speed
     });
   }
+  ballPopulation = MULTIBALL_POPULATION;
 }
 
 function triggerAirStrike() {
@@ -315,14 +339,14 @@ function drawJumpscare() {
   ctx.fillStyle = "rgba(8, 0, 2, 0.94)";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  ctx.fillStyle = "#26130f";
+  ctx.fillStyle = JUMPSCARE_FACE_COLORS[jumpscareVariant];
   ctx.beginPath();
   ctx.ellipse(centerX - 88 * scale, centerY - 98 * scale, 48 * scale, 58 * scale, -0.25, 0, Math.PI * 2);
   ctx.ellipse(centerX + 88 * scale, centerY - 98 * scale, 48 * scale, 58 * scale, 0.25, 0, Math.PI * 2);
   ctx.ellipse(centerX, centerY, 132 * scale, 158 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#ff3b28";
+  ctx.fillStyle = JUMPSCARE_EYE_COLORS[jumpscareVariant];
   ctx.beginPath();
   ctx.ellipse(centerX - 48 * scale, centerY - 22 * scale, 19 * scale, 27 * scale, 0, 0, Math.PI * 2);
   ctx.ellipse(centerX + 48 * scale, centerY - 22 * scale, 19 * scale, 27 * scale, 0, 0, Math.PI * 2);
@@ -350,6 +374,30 @@ function drawJumpscare() {
   }
 }
 
+function drawExplosions() {
+  for (const explosion of explosions) {
+    const progress = explosion.frame / NUKE_EXPLOSION_DURATION;
+    const radius = Math.hypot(WIDTH, HEIGHT) / 2 * (0.08 + progress * 0.92);
+    const fade = 1 - progress;
+
+    ctx.beginPath();
+    ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 65, 12, ${0.55 * fade})`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(explosion.x, explosion.y, radius * 0.72, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 218, 115, ${fade})`;
+    ctx.lineWidth = 18 * fade;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(explosion.x, explosion.y, radius * 0.28, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 245, 210, ${0.8 * fade})`;
+    ctx.fill();
+  }
+}
+
 
 // ------------------------------------------------------------
 // DRAW: paints everything on the canvas. Black background,
@@ -364,6 +412,8 @@ function draw() {
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`LEVEL ${String(level).padStart(2, "0")} / ${MAX_LEVELS}`, 12, 14);
+  ctx.textAlign = "right";
+  ctx.fillText(`BALLS ${ballPopulation.toLocaleString("en-US")}`, WIDTH - 12, 14);
 
   ctx.fillStyle = "#ffd166";
   ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
@@ -394,6 +444,7 @@ function draw() {
 
   drawAircraft();
   drawBricks();  // bricks.js
+  drawExplosions();
   drawJumpscare();
 
   if (gameWon) {
