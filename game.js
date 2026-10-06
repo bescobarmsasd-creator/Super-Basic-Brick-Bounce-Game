@@ -11,6 +11,9 @@ const ctx = canvas.getContext("2d");
 
 const WIDTH = canvas.width;   // 600
 const HEIGHT = canvas.height; // 450
+const MAX_LEVELS = 100;
+let level = 1;
+let gameWon = false;
 
 
 // ------------------------------------------------------------
@@ -34,8 +37,9 @@ const ball = {
 function resetBall() {
   ball.x = WIDTH / 2 - ball.width / 2;
   ball.y = HEIGHT / 2 - ball.height / 2;
-  ball.vx = BALL_SPEED;  // right
-  ball.vy = BALL_SPEED;  // down
+  const speed = BALL_SPEED + Math.floor((level - 1) / 20);
+  ball.vx = speed;  // right
+  ball.vy = speed;  // down
 }
 
 
@@ -57,9 +61,12 @@ let gunCooldown = 0;
 const balls = [ball];
 const powerUps = [];
 const POWERUP_SPEED = 2;
-const MULTIBALL_EXTRA = 5;
-const MAX_BALLS = 12;
+const MULTIBALL_EXTRA = 199;
+const MAX_BALLS = 200;
 const aircraft = [];
+const JUMPSCARE_CHANCE = 0.16;
+const JUMPSCARE_DURATION = 48;
+let jumpscareTimer = 0;
 
 
 // ------------------------------------------------------------
@@ -92,6 +99,12 @@ document.addEventListener("keyup", function (event) {
 // what they touched.
 // ------------------------------------------------------------
 function update() {
+  if (gameWon) {
+    return;
+  }
+  if (jumpscareTimer > 0) {
+    jumpscareTimer--;
+  }
   movePaddle();
   fireGun();
   moveBullets();
@@ -112,9 +125,32 @@ function update() {
   hitBricksWithBullets(); // collisions.js
 
   if (balls.length === 0) {
+    if (Math.random() < JUMPSCARE_CHANCE) {
+      jumpscareTimer = JUMPSCARE_DURATION;
+    }
     resetBall();
     balls.push(ball);
   }
+
+  if (bricks.length === 0) {
+    advanceLevel();
+  }
+}
+
+function advanceLevel() {
+  if (level >= MAX_LEVELS) {
+    gameWon = true;
+    return;
+  }
+
+  level++;
+  bricks = makeBricks(level);
+  bullets.length = 0;
+  powerUps.length = 0;
+  aircraft.length = 0;
+  balls.length = 0;
+  resetBall();
+  balls.push(ball);
 }
 
 function movePaddle() {
@@ -267,6 +303,53 @@ function drawAircraft() {
   }
 }
 
+function drawJumpscare() {
+  if (jumpscareTimer === 0) {
+    return;
+  }
+
+  const centerX = WIDTH / 2 + (jumpscareTimer % 3 - 1) * 5;
+  const centerY = HEIGHT / 2;
+  const scale = 1 + (JUMPSCARE_DURATION - jumpscareTimer) * 0.002;
+
+  ctx.fillStyle = "rgba(8, 0, 2, 0.94)";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = "#26130f";
+  ctx.beginPath();
+  ctx.ellipse(centerX - 88 * scale, centerY - 98 * scale, 48 * scale, 58 * scale, -0.25, 0, Math.PI * 2);
+  ctx.ellipse(centerX + 88 * scale, centerY - 98 * scale, 48 * scale, 58 * scale, 0.25, 0, Math.PI * 2);
+  ctx.ellipse(centerX, centerY, 132 * scale, 158 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ff3b28";
+  ctx.beginPath();
+  ctx.ellipse(centerX - 48 * scale, centerY - 22 * scale, 19 * scale, 27 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(centerX + 48 * scale, centerY - 22 * scale, 19 * scale, 27 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#56352a";
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY + 38 * scale, 74 * scale, 56 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#090507";
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY + 88 * scale, 57 * scale, 47 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#e7d9c5";
+  for (let tooth = -2; tooth <= 2; tooth++) {
+    const toothX = centerX + tooth * 20 * scale;
+    ctx.beginPath();
+    ctx.moveTo(toothX - 8 * scale, centerY + 54 * scale);
+    ctx.lineTo(toothX + 8 * scale, centerY + 54 * scale);
+    ctx.lineTo(toothX, centerY + 74 * scale);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 
 // ------------------------------------------------------------
 // DRAW: paints everything on the canvas. Black background,
@@ -275,6 +358,12 @@ function drawAircraft() {
 function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 14px monospace";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`LEVEL ${String(level).padStart(2, "0")} / ${MAX_LEVELS}`, 12, 14);
 
   ctx.fillStyle = "#ffd166";
   ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
@@ -305,6 +394,17 @@ function draw() {
 
   drawAircraft();
   drawBricks();  // bricks.js
+  drawJumpscare();
+
+  if (gameWon) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "#ffd166";
+    ctx.font = "bold 24px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ALL 100 LEVELS CLEARED!", WIDTH / 2, HEIGHT / 2);
+  }
 }
 
 
@@ -337,7 +437,7 @@ function frame(now) {
 }
 
 function start() {
-  bricks = makeBricks();  // bricks.js
+  bricks = makeBricks(level);  // bricks.js
   resetBall();
   lastTime = performance.now();
   requestAnimationFrame(frame);

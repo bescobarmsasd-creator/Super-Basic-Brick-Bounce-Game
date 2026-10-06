@@ -12,7 +12,7 @@ const BRICK_COLORS = ["#ff6b6b", "#ffd166", "#55d6be", "#6c9eff"];
 
 // Builds the list of bricks. Each brick is an object with an
 // x, y, width, and height.
-function makeBricks() {
+function makeBricks(level = 1) {
   const list = [];
 
   // Center the whole block of bricks on the screen.
@@ -26,8 +26,8 @@ function makeBricks() {
         y: BRICKS_TOP + row * (BRICK_HEIGHT + BRICK_GAP),
         width: BRICK_WIDTH,
         height: BRICK_HEIGHT,
-        color: BRICK_COLORS[row % BRICK_COLORS.length],
-        isTnt: row === 1 && col === 3
+        color: BRICK_COLORS[(row + level - 1) % BRICK_COLORS.length],
+        isTnt: row === level % BRICK_ROWS && col === (level * 3) % BRICK_COLUMNS
       });
     }
   }
