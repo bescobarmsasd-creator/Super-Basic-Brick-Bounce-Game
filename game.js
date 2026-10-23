@@ -546,3 +546,61 @@ function start() {
 
 // Wait until all three script files have loaded, then start.
 window.addEventListener("load", start);
+
+// Add near the top of the file, after gameWon and before the ball code
+let gamePaused = false;
+const BASE_PADDLE_WIDTH = 90;
+const PADDLE_WIDEN_STEP = 20;
+const MAX_PADDLE_WIDTH = 180;
+
+function pauseGame() {
+  gamePaused = !gamePaused;
+}
+
+function restartGame() {
+  level = 1;
+  gameWon = false;
+  gamePaused = false;
+  bricks = makeBricks(level);
+  bullets.length = 0;
+  powerUps.length = 0;
+  aircraft.length = 0;
+  explosions.length = 0;
+  jumpscareTimer = 0;
+  jumpscareVariant = 0;
+  paddle.width = BASE_PADDLE_WIDTH;
+  paddle.x = WIDTH / 2 - paddle.width / 2;
+  balls.length = 0;
+  ballPopulation = 1;
+  resetBall();
+  balls.push(ball);
+}
+
+function widenPaddle() {
+  paddle.width = Math.min(paddle.width + PADDLE_WIDEN_STEP, MAX_PADDLE_WIDTH);
+  if (paddle.x + paddle.width > WIDTH) {
+    paddle.x = WIDTH - paddle.width;
+  }
+}
+const key = event.key.toLowerCase();
+keys[key] = true;
+
+if (event.repeat) {
+  return;
+}
+
+if (key === "p") {
+  pauseGame();
+}
+if (key === "r") {
+  restartGame();
+}
+if (key === "w") {
+  widenPaddle();
+}
+function update() {
+  if (gameWon || gamePaused) {
+    return;
+  }
+  // existing logic...
+}
