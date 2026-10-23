@@ -14,6 +14,10 @@ const HEIGHT = canvas.height; // 450
 const MAX_LEVELS = 100;
 let level = 1;
 let gameWon = false;
+let gamePaused = false;
+const BASE_PADDLE_WIDTH = 90;
+const PADDLE_WIDEN_STEP = 20;
+const MAX_PADDLE_WIDTH = 180;
 
 
 // ------------------------------------------------------------
@@ -49,7 +53,7 @@ function resetBall() {
 const paddle = {
   x: WIDTH / 2 - 45,
   y: HEIGHT - 30,
-  width: 90,
+  width: BASE_PADDLE_WIDTH,
   height: 12,
   speed: 6
 };
@@ -89,8 +93,54 @@ let bricks = [];
 // ------------------------------------------------------------
 const keys = {};
 
+function pauseGame() {
+  gamePaused = !gamePaused;
+}
+
+function restartGame() {
+  level = 1;
+  gameWon = false;
+  gamePaused = false;
+  bricks = makeBricks(level);
+  bullets.length = 0;
+  powerUps.length = 0;
+  aircraft.length = 0;
+  explosions.length = 0;
+  jumpscareTimer = 0;
+  jumpscareVariant = 0;
+  paddle.width = BASE_PADDLE_WIDTH;
+  paddle.x = WIDTH / 2 - paddle.width / 2;
+  balls.length = 0;
+  ballPopulation = 1;
+  resetBall();
+  balls.push(ball);
+}
+
+function widenPaddle() {
+  paddle.width = Math.min(paddle.width + PADDLE_WIDEN_STEP, MAX_PADDLE_WIDTH);
+  if (paddle.x + paddle.width > WIDTH) {
+    paddle.x = WIDTH - paddle.width;
+  }
+}
+
 document.addEventListener("keydown", function (event) {
-  keys[event.key.toLowerCase()] = true;
+  const key = event.key.toLowerCase();
+  keys[key] = true;
+
+  if (event.repeat) {
+    return;
+  }
+
+  if (key === "p") {
+    pauseGame();
+  }
+  if (key === "r") {
+    restartGame();
+  }
+  if (key === "w") {
+    widenPaddle();
+  }
+
   // Stop the arrow keys from scrolling the page.
   if (event.key.startsWith("Arrow") || event.code === "Space") {
     event.preventDefault();
@@ -107,7 +157,7 @@ document.addEventListener("keyup", function (event) {
 // what they touched.
 // ------------------------------------------------------------
 function update() {
-  if (gameWon) {
+  if (gameWon || gamePaused) {
     return;
   }
   if (jumpscareTimer > 0) {
