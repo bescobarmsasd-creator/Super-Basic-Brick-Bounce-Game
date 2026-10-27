@@ -27,7 +27,8 @@ function makeBricks(level = 1) {
         width: BRICK_WIDTH,
         height: BRICK_HEIGHT,
         color: BRICK_COLORS[(row + level - 1) % BRICK_COLORS.length],
-        isTnt: row === level % BRICK_ROWS && col === (level * 3) % BRICK_COLUMNS
+        isTnt: row === level % BRICK_ROWS && col === (level * 3) % BRICK_COLUMNS,
+        beeper: { ...Beeper }
       });
     }
   }
