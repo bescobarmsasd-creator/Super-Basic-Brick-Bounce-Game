@@ -15,9 +15,131 @@ const MAX_LEVELS = 100;
 let level = 1;
 let gameWon = false;
 let gamePaused = false;
+let gameOver = false;
 const BASE_PADDLE_WIDTH = 90;
 const PADDLE_WIDEN_STEP = 20;
 const MAX_PADDLE_WIDTH = 180;
+const STARTING_MONEY = 100;
+const MIN_BET = 5;
+const MAX_BET = 200;
+const DONATION_BONUS_KEY = "brick-breaker-donation-bonus";
+const GAMBLE_TYPES = [
+  { id: "double", label: "Double" },
+  { id: "high-low", label: "High/Low" },
+  { id: "red-black", label: "Red/Black" },
+  { id: "lucky-7", label: "Lucky 7" }
+];
+let money = STARTING_MONEY;
+let currentBet = 10;
+let gambleStatus = "Ready";
+let gambleTypeIndex = 0;
+
+function getCurrentGambleType() {
+  return GAMBLE_TYPES[gambleTypeIndex];
+}
+
+function updateModeHud() {
+  const modeDisplay = document.getElementById("gamble-mode");
+  if (modeDisplay) {
+    modeDisplay.textContent = getCurrentGambleType().label;
+  }
+}
+
+function updateMoneyHud() {
+  const moneyDisplay = document.getElementById("money-display");
+  const betDisplay = document.getElementById("bet-display");
+  const statusDisplay = document.getElementById("gamble-status");
+  const paypalAmount = document.getElementById("paypal-amount");
+
+  if (moneyDisplay) {
+    moneyDisplay.textContent = money.toLocaleString("en-US");
+  }
+  if (betDisplay) {
+    betDisplay.textContent = currentBet.toLocaleString("en-US");
+  }
+  if (statusDisplay) {
+    statusDisplay.textContent = gambleStatus;
+  }
+  if (paypalAmount) {
+    paypalAmount.value = currentBet.toFixed(2);
+  }
+  updateModeHud();
+}
+
+function applyDonationBonus() {
+  const pendingAmount = Number(sessionStorage.getItem(DONATION_BONUS_KEY) || 0);
+  if (!pendingAmount || pendingAmount <= 0) {
+    return;
+  }
+
+  money += pendingAmount;
+  gambleStatus = `Donation bonus +$${pendingAmount}`;
+  sessionStorage.removeItem(DONATION_BONUS_KEY);
+  updateMoneyHud();
+}
+
+function adjustBet(delta) {
+  currentBet = Math.min(MAX_BET, Math.max(MIN_BET, currentBet + delta));
+  gambleStatus = "Bet updated";
+  updateMoneyHud();
+}
+
+function cycleGambleType(step) {
+  gambleTypeIndex = (gambleTypeIndex + step + GAMBLE_TYPES.length) % GAMBLE_TYPES.length;
+  gambleStatus = `${getCurrentGambleType().label} ready`;
+  updateMoneyHud();
+}
+
+function gamble() {
+  if (money < currentBet) {
+    gambleStatus = `Need $${currentBet - money} more`;
+    updateMoneyHud();
+    return;
+  }
+
+  const type = getCurrentGambleType().id;
+  money -= currentBet;
+
+  if (type === "double") {
+    const win = Math.random() < 0.5;
+    if (win) {
+      money += currentBet * 2;
+      gambleStatus = `Double win +$${currentBet}`;
+    } else {
+      gambleStatus = `Double lost -$${currentBet}`;
+    }
+  } else if (type === "high-low") {
+    const pick = Math.random() < 0.5 ? "low" : "high";
+    const roll = Math.floor(Math.random() * 10);
+    const win = (pick === "low" && roll <= 4) || (pick === "high" && roll >= 5);
+    if (win) {
+      money += currentBet * 2;
+      gambleStatus = `${pick.toUpperCase()} win +$${currentBet}`;
+    } else {
+      gambleStatus = `${pick.toUpperCase()} miss -$${currentBet}`;
+    }
+  } else if (type === "red-black") {
+    const choices = ["red", "black"];
+    const pick = choices[Math.floor(Math.random() * choices.length)];
+    const result = choices[Math.floor(Math.random() * choices.length)];
+    if (pick === result) {
+      money += Math.floor(currentBet * 1.8);
+      gambleStatus = `${pick.toUpperCase()} hit +$${Math.floor(currentBet * 0.8)}`;
+    } else {
+      gambleStatus = `${pick.toUpperCase()} lost -$${currentBet}`;
+    }
+  } else {
+    const roll = Math.floor(Math.random() * 8);
+    if (roll === 7) {
+      money += currentBet * 7;
+      gambleStatus = `Lucky 7 JACKPOT +$${currentBet * 6}`;
+    } else {
+      gambleStatus = `Lucky 7 miss -$${currentBet}`;
+    }
+  }
+
+  updateMoneyHud();
+}
 
 
 // ------------------------------------------------------------
@@ -101,6 +223,11 @@ function restartGame() {
   level = 1;
   gameWon = false;
   gamePaused = false;
+  gameOver = false;
+  money = STARTING_MONEY;
+  currentBet = 10;
+  gambleTypeIndex = 0;
+  gambleStatus = "Ready";
   bricks = makeBricks(level);
   bullets.length = 0;
   powerUps.length = 0;
@@ -114,6 +241,7 @@ function restartGame() {
   ballPopulation = 1;
   resetBall();
   balls.push(ball);
+  updateMoneyHud();
 }
 
 function widenPaddle() {
@@ -140,6 +268,21 @@ document.addEventListener("keydown", function (event) {
   if (key === "w") {
     widenPaddle();
   }
+  if (key === "g") {
+    gamble();
+  }
+  if (key === "b") {
+    adjustBet(5);
+  }
+  if (key === "v") {
+    adjustBet(-5);
+  }
+  if (key === "m") {
+    cycleGambleType(1);
+  }
+  if (key === "n") {
+    cycleGambleType(-1);
+  }
 
   // Stop the arrow keys from scrolling the page.
   if (event.key.startsWith("Arrow") || event.code === "Space") {
@@ -157,15 +300,13 @@ document.addEventListener("keyup", function (event) {
 // what they touched.
 // ------------------------------------------------------------
 function update() {
-  if (gameWon || gamePaused) {
+  if (gameWon || gamePaused || gameOver) {
     return;
   }
   if (jumpscareTimer > 0) {
     jumpscareTimer--;
   }
   movePaddle();
-  fireGun();
-  moveBullets();
   updateExplosions();
   updatePowerUps();
   updateAircraft();
@@ -178,17 +319,19 @@ function update() {
     bounceOffBricks(currentBall);  // collisions.js
     if (currentBall.y > HEIGHT) {
       balls.splice(index, 1);
-        ballPopulation = Math.max(balls.length, ballPopulation - BALLS_PER_PROXY);
+      ballPopulation = Math.max(balls.length, ballPopulation - BALLS_PER_PROXY);
+      money = Math.max(0, money - currentBet);
+      currentBet = MIN_BET;
+      gambleStatus = "You lost your stake";
+      gameOver = true;
+      updateMoneyHud();
+      break;
     }
   }
 
   hitBricksWithBullets(); // collisions.js
 
-  if (balls.length === 0) {
-    if (Math.random() < JUMPSCARE_CHANCE) {
-      jumpscareTimer = JUMPSCARE_DURATION;
-      jumpscareVariant = Math.floor(Math.random() * JUMPSCARE_FACE_COLORS.length);
-    }
+  if (balls.length === 0 && !gameOver) {
     resetBall();
     balls.push(ball);
     ballPopulation = 1;
@@ -206,6 +349,8 @@ function advanceLevel() {
   }
 
   level++;
+  money += 25 + level * 5;
+  gambleStatus = `Level clear bonus +$${25 + level * 5}`;
   bricks = makeBricks(level);
   bullets.length = 0;
   powerUps.length = 0;
@@ -214,6 +359,7 @@ function advanceLevel() {
   ballPopulation = 1;
   resetBall();
   balls.push(ball);
+  updateMoneyHud();
 }
 
 function movePaddle() {
@@ -462,8 +608,11 @@ function draw() {
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`LEVEL ${String(level).padStart(2, "0")} / ${MAX_LEVELS}`, 12, 14);
+  ctx.fillText(`BANK $${money.toLocaleString("en-US")}`, 12, 32);
+  ctx.fillText(`BET $${currentBet.toLocaleString("en-US")}`, 12, 50);
   ctx.textAlign = "right";
   ctx.fillText(`BALLS ${ballPopulation.toLocaleString("en-US")}`, WIDTH - 12, 14);
+  ctx.fillText(`STATUS ${gambleStatus}`, WIDTH - 12, 32);
 
   ctx.fillStyle = "#ffd166";
   ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
@@ -473,11 +622,6 @@ function draw() {
   }
   ctx.fillStyle = "#f4f1de";
   ctx.fillRect(paddle.x + paddle.width / 2 - 3, paddle.y - 6, 6, 8);
-
-  ctx.fillStyle = "#55d6be";
-  for (const bullet of bullets) {
-    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
-  }
 
   for (const powerUp of powerUps) {
     const isNuke = powerUp.type === "nuke";
@@ -495,7 +639,6 @@ function draw() {
   drawAircraft();
   drawBricks();  // bricks.js
   drawExplosions();
-  drawJumpscare();
 
   if (gameWon) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
@@ -505,6 +648,19 @@ function draw() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("ALL 100 LEVELS CLEARED!", WIDTH / 2, HEIGHT / 2);
+  }
+
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "#ff6b6b";
+    ctx.font = "bold 30px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("YOU DIED", WIDTH / 2, HEIGHT / 2 - 10);
+    ctx.font = "bold 16px monospace";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Press R to restart", WIDTH / 2, HEIGHT / 2 + 25);
   }
 }
 
@@ -540,67 +696,40 @@ function frame(now) {
 function start() {
   bricks = makeBricks(level);  // bricks.js
   resetBall();
+  updateMoneyHud();
   lastTime = performance.now();
   requestAnimationFrame(frame);
 }
 
+const gambleButton = document.getElementById("gamble-button");
+if (gambleButton) {
+  gambleButton.addEventListener("click", gamble);
+}
+const betUpButton = document.getElementById("bet-up");
+if (betUpButton) {
+  betUpButton.addEventListener("click", () => adjustBet(5));
+}
+const betDownButton = document.getElementById("bet-down");
+if (betDownButton) {
+  betDownButton.addEventListener("click", () => adjustBet(-5));
+}
+const modeLeftButton = document.getElementById("mode-left");
+if (modeLeftButton) {
+  modeLeftButton.addEventListener("click", () => cycleGambleType(-1));
+}
+const modeRightButton = document.getElementById("mode-right");
+if (modeRightButton) {
+  modeRightButton.addEventListener("click", () => cycleGambleType(1));
+}
+const paypalForm = document.getElementById("paypal-donate-form");
+if (paypalForm) {
+  paypalForm.addEventListener("submit", () => {
+    const amount = Number(document.getElementById("paypal-amount")?.value || currentBet);
+    sessionStorage.setItem(DONATION_BONUS_KEY, String(Math.max(0, amount)));
+  });
+}
+window.addEventListener("focus", applyDonationBonus);
+window.addEventListener("pageshow", applyDonationBonus);
+
 // Wait until all three script files have loaded, then start.
 window.addEventListener("load", start);
-
-// Add near the top of the file, after gameWon and before the ball code
-let gamePaused = false;
-const BASE_PADDLE_WIDTH = 90;
-const PADDLE_WIDEN_STEP = 20;
-const MAX_PADDLE_WIDTH = 180;
-
-function pauseGame() {
-  gamePaused = !gamePaused;
-}
-
-function restartGame() {
-  level = 1;
-  gameWon = false;
-  gamePaused = false;
-  bricks = makeBricks(level);
-  bullets.length = 0;
-  powerUps.length = 0;
-  aircraft.length = 0;
-  explosions.length = 0;
-  jumpscareTimer = 0;
-  jumpscareVariant = 0;
-  paddle.width = BASE_PADDLE_WIDTH;
-  paddle.x = WIDTH / 2 - paddle.width / 2;
-  balls.length = 0;
-  ballPopulation = 1;
-  resetBall();
-  balls.push(ball);
-}
-
-function widenPaddle() {
-  paddle.width = Math.min(paddle.width + PADDLE_WIDEN_STEP, MAX_PADDLE_WIDTH);
-  if (paddle.x + paddle.width > WIDTH) {
-    paddle.x = WIDTH - paddle.width;
-  }
-}
-const key = event.key.toLowerCase();
-keys[key] = true;
-
-if (event.repeat) {
-  return;
-}
-
-if (key === "p") {
-  pauseGame();
-}
-if (key === "r") {
-  restartGame();
-}
-if (key === "w") {
-  widenPaddle();
-}
-function update() {
-  if (gameWon || gamePaused) {
-    return;
-  }
-  // existing logic...
-}

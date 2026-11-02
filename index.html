@@ -9,7 +9,35 @@
 <body>
   <main>
     <canvas id="game" width="600" height="450" aria-label="Block Breaker game"></canvas>
-    <p>Clear 100 levels. Move with arrows or A and D; hold Space to fire. Catch x5 for multiball, AIR for a strike, or NUKE to clear the board.</p>
+
+    <div class="hud-panel" aria-live="polite">
+      <div class="money-row">
+        <span>Money: $<strong id="money-display">100</strong></span>
+        <span>Bet: $<strong id="bet-display">10</strong></span>
+        <span id="gamble-status">Ready</span>
+      </div>
+      <div class="mode-row">
+        <button id="mode-left" type="button">◀</button>
+        <span id="gamble-mode">Double</span>
+        <button id="mode-right" type="button">▶</button>
+      </div>
+      <div class="controls-row">
+        <button id="bet-down" type="button">-</button>
+        <button id="gamble-button" type="button">Stake</button>
+        <button id="bet-up" type="button">+</button>
+      </div>
+      <form id="paypal-donate-form" class="paypal-form" action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+        <input type="hidden" name="cmd" value="_donations">
+        <input type="hidden" name="business" value="REPLACE_WITH_YOUR_PAYPAL_EMAIL">
+        <input type="hidden" name="item_name" value="Brick Breaker Support">
+        <input type="hidden" name="currency_code" value="USD">
+        <input type="hidden" name="amount" id="paypal-amount" value="10">
+        <input type="hidden" name="charset" value="utf-8">
+        <button type="submit" class="paypal-button">Donate with PayPal</button>
+      </form>
+    </div>
+
+    <p>Clear 100 levels. Move with arrows or A and D. Your current stake is lost if the ball drops. Use the PayPal donation button to support the game.</p>
   </main>
 
   <!-- The order matters: game.js goes first because the other files use its settings. -->

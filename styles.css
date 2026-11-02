@@ -29,6 +29,56 @@ canvas {
   background: #000;
 }
 
+.hud-panel {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.money-row,
+.mode-row,
+.controls-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+#gamble-mode {
+  min-width: 120px;
+  text-align: center;
+}
+
+.paypal-form {
+  margin-top: 4px;
+}
+
+.paypal-button {
+  background: #0070ba;
+  border-color: #0070ba;
+}
+
+.paypal-button:hover {
+  background: #005ea6;
+}
+
+button {
+  background: #111;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 6px 12px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #222;
+}
+
 p {
   margin: 12px 0 0;
   font-size: 14px;

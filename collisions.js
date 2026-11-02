@@ -88,6 +88,14 @@ function destroyBrick(index) {
     return;
   }
 
+  if (typeof money !== "undefined") {
+    money += 3 + level;
+    gambleStatus = `Brick bonus +$${3 + level}`;
+    if (typeof updateMoneyHud === "function") {
+      updateMoneyHud();
+    }
+  }
+
   bricks.splice(index, 1);
   if (!target.isTnt) {
     if (Math.random() < 0.2) {
