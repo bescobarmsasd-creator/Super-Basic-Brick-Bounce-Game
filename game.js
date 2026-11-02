@@ -23,6 +23,7 @@ const STARTING_MONEY = 100;
 const MIN_BET = 5;
 const MAX_BET = 200;
 const DONATION_BONUS_KEY = "brick-breaker-donation-bonus";
+const PAYPAL_EMAIL_KEY = "brick-breaker-paypal-email";
 const GAMBLE_TYPES = [
   { id: "double", label: "Double" },
   { id: "high-low", label: "High/Low" },
@@ -728,8 +729,27 @@ if (paypalForm) {
     sessionStorage.setItem(DONATION_BONUS_KEY, String(Math.max(0, amount)));
   });
 }
+function syncPaypalEmail() {
+  const emailInput = document.getElementById("paypal-email-input");
+  const businessInput = document.getElementById("paypal-business");
+  if (!emailInput || !businessInput) {
+    return;
+  }
+
+  const savedEmail = localStorage.getItem(PAYPAL_EMAIL_KEY) || "REPLACE_WITH_YOUR_PAYPAL_EMAIL";
+  emailInput.value = savedEmail;
+  businessInput.value = savedEmail;
+
+  emailInput.addEventListener("input", () => {
+    const nextEmail = emailInput.value.trim();
+    localStorage.setItem(PAYPAL_EMAIL_KEY, nextEmail || "REPLACE_WITH_YOUR_PAYPAL_EMAIL");
+    businessInput.value = nextEmail || "REPLACE_WITH_YOUR_PAYPAL_EMAIL";
+  });
+}
+
 window.addEventListener("focus", applyDonationBonus);
 window.addEventListener("pageshow", applyDonationBonus);
+window.addEventListener("load", syncPaypalEmail);
 
 // Wait until all three script files have loaded, then start.
 window.addEventListener("load", start);

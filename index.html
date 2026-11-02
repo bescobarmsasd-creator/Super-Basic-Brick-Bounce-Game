@@ -26,9 +26,13 @@
         <button id="gamble-button" type="button">Stake</button>
         <button id="bet-up" type="button">+</button>
       </div>
+      <div class="paypal-config">
+        <label for="paypal-email-input">PayPal business email</label>
+        <input id="paypal-email-input" type="email" placeholder="you@example.com" value="REPLACE_WITH_YOUR_PAYPAL_EMAIL">
+      </div>
       <form id="paypal-donate-form" class="paypal-form" action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
         <input type="hidden" name="cmd" value="_donations">
-        <input type="hidden" name="business" value="REPLACE_WITH_YOUR_PAYPAL_EMAIL">
+        <input type="hidden" name="business" id="paypal-business" value="REPLACE_WITH_YOUR_PAYPAL_EMAIL">
         <input type="hidden" name="item_name" value="Brick Breaker Support">
         <input type="hidden" name="currency_code" value="USD">
         <input type="hidden" name="amount" id="paypal-amount" value="10">
