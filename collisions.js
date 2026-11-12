@@ -149,3 +149,26 @@ function hitBricksWithBullets() {
   }
 }
 
+  const target = bricks[index];
+  if (!target) {
+    return;
+  }
+
+  brickHitEffects.push({
+    x: target.x + target.width / 2,
+    y: target.y + target.height / 2,
+    color: target.isTnt ? "#ff4d3d" : target.color || "#fff",
+    frame: 0
+  });
+
+  if (typeof money !== "undefined") {
+    money += 3 + level;
+    gambleStatus = `Brick bonus +$${3 + level}`;
+    if (typeof updateMoneyHud === "function") {
+      updateMoneyHud();
+    }
+  }
+
+  bricks.splice(index, 1);
+  // rest of the brick destruction logic...
+}

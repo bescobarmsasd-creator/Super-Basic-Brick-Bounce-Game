@@ -77,3 +77,82 @@ function drawBricks() {
 
   drawBrickHitEffects();
 }
+const BRICK_HIT_EFFECT_DURATION = 14;
+const brickHitEffects = [];
+
+function drawBrickHitEffects() {
+  for (let index = brickHitEffects.length - 1; index >= 0; index--) {
+    const effect = brickHitEffects[index];
+    const progress = effect.frame / BRICK_HIT_EFFECT_DURATION;
+    const radius = 4 + progress * 24;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - progress;
+    ctx.strokeStyle = effect.color;
+    ctx.lineWidth = 2 + (1 - progress) * 2;
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    effect.frame++;
+    if (effect.frame >= BRICK_HIT_EFFECT_DURATION) {
+      brickHitEffects.splice(index, 1);
+    }
+  }
+}
+
+function drawBricks() {
+  for (const brick of bricks) {
+    ctx.fillStyle = brick.isTnt ? "#ff4d3d" : brick.color;
+    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+    if (brick.isTnt) {
+      ctx.fillStyle = "#111";
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("TNT", brick.x + brick.width / 2, brick.y + brick.height / 2);
+    }
+  }
+
+  drawBrickHitEffects();
+}const BRICK_HIT_EFFECT_DURATION = 14;
+const brickHitEffects = [];
+
+function drawBrickHitEffects() {
+  for (let index = brickHitEffects.length - 1; index >= 0; index--) {
+    const effect = brickHitEffects[index];
+    const progress = effect.frame / BRICK_HIT_EFFECT_DURATION;
+    const radius = 4 + progress * 24;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - progress;
+    ctx.strokeStyle = effect.color;
+    ctx.lineWidth = 2 + (1 - progress) * 2;
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    effect.frame++;
+    if (effect.frame >= BRICK_HIT_EFFECT_DURATION) {
+      brickHitEffects.splice(index, 1);
+    }
+  }
+}
+
+function drawBricks() {
+  for (const brick of bricks) {
+    ctx.fillStyle = brick.isTnt ? "#ff4d3d" : brick.color;
+    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+    if (brick.isTnt) {
+      ctx.fillStyle = "#111";
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("TNT", brick.x + brick.width / 2, brick.y + brick.height / 2);
+    }
+  }
+
+  drawBrickHitEffects();
+}
