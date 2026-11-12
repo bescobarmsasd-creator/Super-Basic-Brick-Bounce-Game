@@ -9,6 +9,8 @@ const BRICK_HEIGHT = 20;
 const BRICK_GAP = 6;     // empty space between bricks
 const BRICKS_TOP = 50;   // how far down the first row starts
 const BRICK_COLORS = ["#ff6b6b", "#ffd166", "#55d6be", "#6c9eff"];
+const BRICK_HIT_EFFECT_DURATION = 14;
+const brickHitEffects = [];
 
 // Builds the list of bricks. Each brick is an object with an
 // x, y, width, and height.
@@ -36,6 +38,29 @@ function makeBricks(level = 1) {
   return list;
 }
 
+// Draws each hit as a short-lived colored ring that expands and fades.
+function drawBrickHitEffects() {
+  for (let index = brickHitEffects.length - 1; index >= 0; index--) {
+    const effect = brickHitEffects[index];
+    const progress = effect.frame / BRICK_HIT_EFFECT_DURATION;
+    const radius = 4 + progress * 24;
+
+    ctx.save();
+    ctx.globalAlpha = 1 - progress;
+    ctx.strokeStyle = effect.color;
+    ctx.lineWidth = 2 + (1 - progress) * 2;
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    effect.frame++;
+    if (effect.frame >= BRICK_HIT_EFFECT_DURATION) {
+      brickHitEffects.splice(index, 1);
+    }
+  }
+}
+
 // Draws every brick in the list.
 function drawBricks() {
   for (const brick of bricks) {
@@ -49,4 +74,6 @@ function drawBricks() {
       ctx.fillText("TNT", brick.x + brick.width / 2, brick.y + brick.height / 2);
     }
   }
+
+  drawBrickHitEffects();
 }

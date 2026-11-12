@@ -88,6 +88,14 @@ function destroyBrick(index) {
     return;
   }
 
+  // Keep the brick's color for a brief hit flash after the brick disappears.
+  brickHitEffects.push({
+    x: target.x + target.width / 2,
+    y: target.y + target.height / 2,
+    color: target.isTnt ? "#ff4d3d" : target.color || "#fff",
+    frame: 0
+  });
+
   if (typeof money !== "undefined") {
     money += 3 + level;
     gambleStatus = `Brick bonus +$${3 + level}`;
@@ -140,3 +148,4 @@ function hitBricksWithBullets() {
     }
   }
 }
+
